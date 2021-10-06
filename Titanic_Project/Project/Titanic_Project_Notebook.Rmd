@@ -1,0 +1,114 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#Import Libraries
+```{r}
+library(rCharts)
+library(readxl)
+library(ggplot2)
+library(XML)
+library(reshape2)
+library(plyr)
+```
+
+
+#Make changes to the data base to add new columns
+```{r}
+Titanic_Dataset <- read_excel("C:/Users/valla/Desktop/Vallabh_Rutgers/DAV/Assignments/Titanic_Dataset.xlsx")
+
+labs <- c(paste(seq(0, 60, by = 30), seq(0 + 30 - 1, 90 - 1, by = 30),
+                sep = "-"), paste(90, "+", sep = ""))
+labs
+
+Titanic_Dataset$AgeGroup <- cut(Titanic_Dataset$Age, breaks = c(seq(0, 90, by = 30), Inf), labels = labs, right = FALSE)
+
+Titanic_Dataset$Status_Passenger = Titanic_Dataset$Survived
+Titanic_Dataset$Status_Passenger[Titanic_Dataset$Status_Passenger == 0] <- "Dead"
+Titanic_Dataset$Status_Passenger[Titanic_Dataset$Status_Passenger == 1] <- "Survived"
+
+Titanic_Dataset$Family_on_board = Titanic_Dataset$`Siblings/Spouses Aboard` + Titanic_Dataset$`Parents/Children Aboard`
+Titanic_Dataset$Family_on_board[Titanic_Dataset$Family_on_board >= 1] <- "With Family"
+Titanic_Dataset$Family_on_board[Titanic_Dataset$Family_on_board == 0] <- "Alone"
+
+View(Titanic_Dataset)
+```
+
+
+#Total number of people per class based on sex
+```{r}
+ggplot(Titanic_Dataset,aes(x=Pclass, fill=Sex))+
+  geom_bar(position="dodge")+
+  labs(x = "\n Passenger Class", y = "Total number of male/female passengers \n", fill = "Gender \n",
+       title = "Gender vs Passenger Class \n") 
+```
+
+
+#Total number of people survived per class based on sex
+```{r}
+Survived.labs <- c("Dead", "Survived")
+names(Survived.labs) <- c("0", "1")
+
+
+ggplot(Titanic_Dataset,aes(x=Pclass, fill=Sex))+
+  geom_bar(position="dodge")+facet_grid(
+    . ~ Survived, 
+    labeller = labeller(Survived = Survived.labs)
+  )+
+  labs(x = "\n Passenger Class", y = "Survival/Death Count \n", fill = "Gender \n",
+       title = "Survived vs Passenger Class \n") 
+```
+
+
+#Total number of people based on age group
+```{r}
+ggplot(data=Titanic_Dataset,aes(x=AgeGroup,fill=Sex)) + 
+  geom_bar(data=subset(Titanic_Dataset,Sex=="female")) + 
+  geom_bar(data=subset(Titanic_Dataset,Sex=="male"),aes(y=..count..*(-1))) + 
+  scale_y_continuous(breaks=seq(-250,250,50), labels=c(250,200,150,100,50,0,50,100,150,200,250)) + 
+  coord_flip()
+```
+
+
+# Survived vs Age Group
+```{r}
+ggplot(Titanic_Dataset, aes(Status_Passenger, AgeGroup, color = Sex)) + 
+  geom_jitter(position=position_jitter(0.2))+   
+  facet_wrap(~Sex)
+```
+```{r}
+ggplot(Titanic_Dataset,aes(Status_Passenger, Age, fill = Sex))+
+  geom_boxplot()
+```
+
+
+#Total number of passengers with/without family
+```{r}
+bp <- ggplot(Titanic_Dataset,aes(x=Family_on_board, fill=Sex))+
+  geom_bar(position="dodge")+
+  facet_wrap(~Sex)+
+  labs(x = "\n Family status", y = "count \n", fill = "Gender \n",
+       title = "Family details for passengers \n") 
+
+pie <- bp + coord_polar("y", start=0)
+pie
+```
+
+
+#Total number of people survived based on family members on boards
+```{r}
+Survived.labs <- c("Dead", "Survived")
+names(Survived.labs) <- c("0", "1")
+
+
+ggplot(Titanic_Dataset,aes(x=Family_on_board, fill=Sex))+
+  geom_bar(position="stack")+facet_grid(
+    . ~ Survived, 
+    labeller = labeller(Survived = Survived.labs)
+  )+
+  labs(x = "\n Passenger Class", y = "Survival/Death Count \n", fill = "Gender \n",
+       title = "Survived vs Family on board\n") 
+```
+
+
